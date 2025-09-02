@@ -10,8 +10,6 @@ i2c = I2C(scl=Pin(22), sda=Pin(21))  # GPIO5 = D1, GPIO4 = D2 (ESP8266)
 
 
 
-# Inicializar sensores
-mpu = MPU6050(i2c)
 
 
 TCA9548A_ADDR = 0x70
@@ -27,6 +25,9 @@ for canal in [0, 1]:
     time.sleep(0.1)  # Da tiempo al bus I2C a cambiar de canal
 
     mpu = MPU6050(i2c)
+    mpu.activate_low_pass()
+    mpu.set_gyro_range(0x08)
+    mpu.set_accel_range(0x10)
     if 13 in i2c.scan():
         hmc = QMC5883L(i2c)
     if 30 in i2c.scan():
