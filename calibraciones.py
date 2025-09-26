@@ -9,7 +9,7 @@ import time
 i2c = I2C(scl=Pin(22), sda=Pin(21))  # GPIO5 = D1, GPIO4 = D2 (ESP8266)
 
 
-
+print(i2c.scan())
 
 
 TCA9548A_ADDR = 0x70
@@ -22,21 +22,17 @@ seleccionar_canal(0)
 address=30
 for canal in [0, 1]:
     seleccionar_canal(canal)
+    print(canal,i2c.scan())
     time.sleep(0.1)  # Da tiempo al bus I2C a cambiar de canal
 
     mpu = MPU6050(i2c)
     mpu.activate_low_pass()
     mpu.set_gyro_range(0x08)
     mpu.set_accel_range(0x10)
-    if 13 in i2c.scan():
-        hmc = QMC5883L(i2c)
-    if 30 in i2c.scan():
-       hmc = HMC5883L(i2c)
     
 
     sensores[canal] = {
-        'mpu': mpu,
-        'hmc': hmc
+        'mpu': mpu
     }
 
 
@@ -55,8 +51,8 @@ def calibrate_mpu6050(mpu,samples=100):
         for axis in acc_bias:
             
             acc_bias[axis] += acc[axis]
-            if axis == 'z':
-                acc_bias[axis]-=10
+            if axis == 'y':
+                acc_bias[axis]+=10
             gyro_bias[axis] += gyro[axis]
         time.sleep(0.01)
     acc_bias ={axis: round(acc_bias[axis] / samples,2) for axis in acc_bias} 
@@ -94,19 +90,16 @@ for canal in [0,1]:
     try:
         # Inicializa sensores tras seleccionar el canal
         mpu = sensores[canal]['mpu']
-        hmc = sensores[canal]['hmc']
-
 
 
         mpu_data = calibrate_mpu6050(mpu)
-        hmc_data = calibrate_hmc5883l(hmc)
+
         
         
 
         # Guardar en archivo JSON
         calibration_data = {
-            "mpu6050": mpu_data,
-            "hmc5883l": hmc_data
+            "mpu6050": mpu_data
         }
         
         calibs[canal]=calibration_data

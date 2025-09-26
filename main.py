@@ -1,5 +1,5 @@
 from machine import Pin, I2C
-from time import sleep,ticks_us
+from time import sleep,ticks_us,ticks_ms
 from MPU6050 import MPU6050
 from hmc5883l import HMC5883L
 from qmc5883l import QMC5883L
@@ -19,24 +19,29 @@ comp_roll=0
 comp_pitch=0
 comp_yaw=0
 
-kalman_uncertainty_roll=0
-kalman_uncertainty_pitch=0
-kalman_uncertainty_yaw=0
+kalman_uncertainty_roll=10
+kalman_uncertainty_pitch=10
+kalman_uncertainty_yaw=10
 
 
-gyro_uncertainty_roll=4
-gyro_uncertainty_pitch=4
-gyro_uncertainty_yaw=4
+gyro_uncertainty_roll=0.5
+gyro_uncertainty_pitch=0.5
+gyro_uncertainty_yaw=0.5
 
-acc_uncertainty_roll=3
-acc_uncertainty_pitch=3
+acc_uncertainty_roll=1.5
+acc_uncertainty_pitch=1.5
 magna_uncertainty_yaw=1
 
-sampleTime=0.05
+sampleTime=0.01
 timeoffset=0.05
 
 
 i2c.writeto(TCA9548A_ADDR,b'\x00')
+
+roll0=0
+pitch0=0
+roll1=0
+pitch1=0
 
 def seleccionar_canal(canal):
     if 0 <= canal <= 7:
@@ -50,15 +55,12 @@ for canal in [0, 1]:
     sleep(0.1)  # Da tiempo al bus I2C a cambiar de canal
 
     mpu = MPU6050(i2c)
-    if 13 in i2c.scan():
-        hmc = QMC5883L(i2c)
-    if 30 in i2c.scan():
-       hmc = HMC5883L(i2c)
-    
+    mpu.activate_low_pass()
+    mpu.set_gyro_range(0x08)
+    mpu.set_accel_range(0x10)
 
     sensores[canal] = {
         'mpu': mpu,
-        'hmc': hmc
     }
 
 
@@ -88,6 +90,7 @@ else:
 
 
 def kalman_1d(KalmanState,KalmanUncertainty,rateInput,rateUncertainty,noiseInput,noiseUncertainty,sampleTime):
+    
     KalmanStateval=KalmanState+sampleTime*rateInput
     KalmanUncertaintyval=KalmanUncertainty+(sampleTime*rateUncertainty)**2
     KalmanGain=KalmanUncertaintyval*1/(1*KalmanUncertaintyval+noiseUncertainty**2)
@@ -99,18 +102,20 @@ def kalman_1d(KalmanState,KalmanUncertainty,rateInput,rateUncertainty,noiseInput
 def complementary_1d(theta,measurement,rate,sampleTime,alpha):
     
     gain=alpha/100    
-    theta=gain*(theta+rate*sampleTime)+(1-gain/100)*measurement
+    theta=gain*(theta+rate*sampleTime)+(1-gain)*measurement
     
     return theta
     
-    
+
+deltatime=0
 
 
+start = ticks_us()
 count=0
-start=0
+
 while True:
     for canal in [0,1]:
-        
+
         
         seleccionar_canal(canal)
     
@@ -119,31 +124,34 @@ while True:
         try:
             # Inicializa sensores tras seleccionar el canal
             mpu = sensores[canal]['mpu']
-            hmc = sensores[canal]['hmc']
 
             acc = mpu.read_accel_data()
             gyro = mpu.read_gyro_data()
-            mag = hmc.read()
             
             for elem in acc:
                 acc[elem]=acc[elem]-cal[str(canal)]["mpu6050"]["accel_bias"][elem]
                 gyro[elem]=gyro[elem]-cal[str(canal)]["mpu6050"]["gyro_bias"][elem]
                 
+            
+            roll=atan(acc['z']/-acc['y'])*180/pi
+            pitch=-atan(acc['x']/(acc['z']**2+acc['y']**2)**0.5)*180/pi
+            end=ticks_us()
+            
+            deltatime=(end-start)/1000000
+
                 
-            roll=atan(acc['y']/(acc['x']**2+acc['z']**2)**0.5)*180/pi
-            pitch=-atan(acc['x']/(acc['y']**2+acc['z']**2)**0.5)*180/pi
-            heading=hmc.heading(mag[0],mag[1])
-            end=ticks_us() 
-            if start!= 0:
-                kalman_roll,kalman_uncertainty_roll=kalman_1d(kalman_roll,kalman_uncertainty_roll,gyro['x'],gyro_uncertainty_roll,roll,acc_uncertainty_roll,(end-start)/1000000)
-                kalman_pitch,kalman_uncertainty_pitch=kalman_1d(kalman_pitch,kalman_uncertainty_pitch,gyro['y'],gyro_uncertainty_pitch,pitch,acc_uncertainty_pitch,(end-start)/1000000)
-                kalman_yaw,kalman_uncertainty_yaw=kalman_1d(kalman_yaw,kalman_uncertainty_yaw,gyro['z'],gyro_uncertainty_yaw,heading[0],magna_uncertainty_yaw,(end-start)/1000000)
-                comp_roll=complementary_1d(comp_roll,roll,gyro['x'],(end-start)/1000000,95)
-                comp_pitch=complementary_1d(comp_pitch,pitch,gyro['y'],(end-start)/1000000,95)
-                comp_yaw=complementary_1d(comp_yaw,heading[0],gyro['z'],(end-start)/1000000,95)
-            start=ticks_us()                      
-            if count>=int(1/sampleTime):
-                count=0
+                
+                
+            
+            
+            #kalman_roll,kalman_uncertainty_roll=kalman_1d(kalman_roll,kalman_uncertainty_roll,-gyro['z'],gyro_uncertainty_roll,roll,acc_uncertainty_roll,deltatime)
+            #kalman_pitch,kalman_uncertainty_pitch=kalman_1d(kalman_pitch,kalman_uncertainty_pitch,gyro['x'],gyro_uncertainty_pitch,pitch,acc_uncertainty_pitch,deltatime)
+            comp_roll=complementary_1d(comp_roll,roll,-gyro['z'],deltatime,85)
+            comp_pitch=complementary_1d(comp_pitch,pitch,gyro['x'],deltatime,85)
+            
+            start=ticks_us()
+            #if count>=int(1/sampleTime):
+            #   count=0
                 #print(f"[CANAL {canal}]")
                 #print(f"  Aceleración: X={acc['x']:.2f}g Y={acc['y']:.2f}g Z={acc['z']:.2f}g")
                 #print(f"  Giroscopio : X={gyro['x']:.2f}°/s Y={gyro['y']:.2f}°/s Z={gyro['z']:.2f}°/s")
@@ -154,11 +162,11 @@ while True:
 
                 #print("-" * 50)
                 
-                
-            print("{},{},{},{}".format(canal,round(kalman_roll,2),round(kalman_pitch,2),round(kalman_yaw,2)))
+            if (count>=10):
+                count=0
+            print("{},{},{},{}".format(canal,round(comp_roll,2),round(comp_pitch,2),round(kalman_yaw,2)))
             count+=1
             sleep(sampleTime)
-            sleep(1)
         except Exception as e:
             print(f"[CANAL {canal}] ❌ Error leyendo sensores: {e}")
 

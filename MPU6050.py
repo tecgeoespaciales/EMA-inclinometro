@@ -46,6 +46,7 @@ _GYRO_XOUT0 = 0x43
 
 _ACCEL_CONFIG = 0x1C
 _GYRO_CONFIG = 0x1B
+_MPU_CONFIG = 0x1A
 
 _maxFails = 3
 
@@ -186,6 +187,12 @@ class MPU6050(object):
         self.i2c.writeto_mem(self.addr, _GYRO_CONFIG, bytes([gyro_range]))
         self._gyro_range = gyro_range
 
+
+    def activate_low_pass(self):
+        
+        self.i2c.writeto_mem(self.addr, _MPU_CONFIG, b'0x05')
+        
+        
     # Gets the range the gyroscope is set to.
     # raw=True: return raw value from GYRO_CONFIG register
     # raw=False: return range in deg/s
