@@ -27,9 +27,9 @@ comp_roll1=0
 comp_pitch1=0
 comp_yaw1=0
 
-kalman_uncertainty_roll0=10
-kalman_uncertainty_pitch0=10
-kalman_uncertainty_yaw0=10
+kalman_uncertainty_roll=10
+kalman_uncertainty_pitch=10
+kalman_uncertainty_yaw=10
 
 
 gyro_uncertainty_roll=0.5
@@ -39,14 +39,6 @@ gyro_uncertainty_yaw=0.5
 acc_uncertainty_roll=1.5
 acc_uncertainty_pitch=1.5
 magna_uncertainty_yaw=1
-
-
-kalman_uncertainty_roll1=10
-kalman_uncertainty_pitch1=10
-kalman_uncertainty_yaw1=10
-
-
-
 
 sampleTime=0.005
 timeoffset=0.05
@@ -166,11 +158,8 @@ while True:
             
         
         
-        #kalman_roll0,kalman_uncertainty_roll0=kalman_1d(kalman_roll0,kalman_uncertainty_roll0,gyro[0]['x'],gyro_uncertainty_roll,roll0,acc_uncertainty_roll,deltatime)
-        #kalman_pitch0,kalman_uncertainty_pitch0=kalman_1d(kalman_pitch0,kalman_uncertainty_pitch0,-gyro[0]['z'],gyro_uncertainty_pitch,pitch0,acc_uncertainty_pitch,deltatime)
-        #kalman_roll1,kalman_uncertainty_roll1=kalman_1d(kalman_roll1,kalman_uncertainty_roll1,gyro[1]['x'],gyro_uncertainty_roll,roll1,acc_uncertainty_roll,deltatime)
-        #kalman_pitch1,kalman_uncertainty_pitch1=kalman_1d(kalman_pitch1,kalman_uncertainty_pitch1,-gyro[1]['z'],gyro_uncertainty_pitch,pitch1,acc_uncertainty_pitch,deltatime)
-        
+        #kalman_roll,kalman_uncertainty_roll=kalman_1d(kalman_roll,kalman_uncertainty_roll,-gyro['z'],gyro_uncertainty_roll,roll,acc_uncertainty_roll,deltatime)
+        #kalman_pitch,kalman_uncertainty_pitch=kalman_1d(kalman_pitch,kalman_uncertainty_pitch,gyro['x'],gyro_uncertainty_pitch,pitch,acc_uncertainty_pitch,deltatime)
         comp_roll0=complementary_1d(comp_roll0,roll1,gyro[0]['x'],deltatime,80)
         comp_pitch0=complementary_1d(comp_pitch0,pitch1,-gyro[0]['z'],deltatime,80)
         comp_roll1=complementary_1d(comp_roll1,roll1,gyro[1]['x'],deltatime,80)
@@ -190,7 +179,7 @@ while True:
             
         if (count>=10):
             count=0
-        print("{},{},{},{}\n{},{},{},{}".format(0,round(comp_roll0,2),round(comp_pitch0,2),round(comp_yaw0,2),1,round(comp_roll1,2),round(comp_pitch1,2),round(comp_yaw1,2)))
+        print("{},{},{},{}\n{},{},{},{}".format(0,round(comp_roll0,2),round(comp_pitch0,2),round(kalman_yaw0,2),1,round(comp_roll1,2),round(comp_pitch1,2),round(kalman_yaw1,2)))
         count+=1
         sleep(sampleTime)
     except Exception as e:
