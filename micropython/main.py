@@ -115,10 +115,10 @@ def kalman_1d(KalmanState,KalmanUncertainty,rateInput,rateUncertainty,noiseInput
     
     return KalmanStateval,KalmanUncertaintyval
 
-def complementary_1d(theta,measurement,rate,sampleTime,alpha):
+def complementary_1d(theta,measurement,rate,sampleTime,alphapercent):
     
-    gain=alpha/100    
-    theta=gain*(theta+rate*sampleTime)+(1-gain)*measurement
+    alpha=alphapercent/100    
+    theta=alpha*(theta+rate*sampleTime)+(1-alpha)*measurement
     
     return theta
     
