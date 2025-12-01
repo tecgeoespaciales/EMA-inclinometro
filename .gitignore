@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# MicroPython / embedded builds
+*.mpy
+*.uf2
+*.bin
+*.hex
+*.elf
+build/
+dist/
+.pio/
+.mpy-cross/
+
+# Project and dependency metadata
+pip-wheel-metadata/
+*.egg-info/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs, temporary files, backups
+*.log
+*.tmp
+*.bak
+
+# Test / cache
+.pytest_cache/
+.mypy_cache/
+
+# Java build artefacts (if any)
+*.class
+*.jar
+*.war
+*.ear
+
+# Misc
+*.swp
+*.lock
+
+# Windows distribution (prebuilt Java runtime and modules)
+windows-amd64/
+*.jmod
